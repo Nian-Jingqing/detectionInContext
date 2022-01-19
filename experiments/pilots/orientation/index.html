@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Noisy image</title>
+        <script src="jquery/jquery.min.js"></script>
+        <script src="jspsych-6.1.0/jspsych.js"></script>
+        <script src="jspsych-6.1.0/plugins/jspsych-p5noisyImage.js"></script>
+        <script src="jspsych-6.1.0/plugins/jspsych-fullscreen.js"></script>
+        <script src="jspsych-6.1.0/plugins/jspsych-html-keyboard-response.js"></script>
+        <script src="jspsych-6.1.0/plugins/jspsych-instructions.js"></script>
+        <script src="p5/p5.min.js"></script>
+        <link href="https://fonts.googleapis.com/css2?family=Corben&family=Quicksand&display=swap" rel="stylesheet">
+        <link href="style.css" rel="stylesheet" type="text/css"></link>
+    </head>
+    <body></body>
+    <script>
+
+    function makeTimeline() {
+
+      timeline = [];
+
+      timeline.push({
+        type: 'fullscreen',
+        fullscreen_mode: true
+      });
+
+
+      var trial = {
+        type: "noisyImage",
+        choices: ['d','f'],
+        image: jsPsych.timelineVariable('image'),
+        context_image: jsPsych.timelineVariable('context_image'),
+        max_p: jsPsych.timelineVariable('max_p'),
+        on_finish: function(data){
+          data.correct = data.response == data.correct_response;
+        },
+        data: jsPsych.timelineVariable('data')
+      };
+
+      var horizontal_stimuli = [
+        { image: "img/horizontal.png", context_image: 'img/bottom.png', max_p: 0.5,
+            data: { test_part: 'horizontal_test', correct_response: 'f'} },
+        { image: "img/horizontal.png", context_image: 'img/top.png', max_p: 0.5,
+                data: { test_part: 'horizontal_test', correct_response: 'f'} },
+        { image: "img/horizontal.png", context_image: 'img/right.png', max_p: 0.5,
+                        data: { test_part: 'horizontal_test', correct_response: 'f'} },
+        { image: "img/horizontal.png", context_image: 'img/left.png', max_p: 0.5,
+                                data: { test_part: 'horizontal_test', correct_response: 'f'} },
+        { image: "img/horizontal.png", context_image: 'img/bottom.png', max_p: 0,
+            data: { test_part: 'horizontal_test', correct_response: 'g'} },
+        { image: "img/horizontal.png", context_image: 'img/top.png', max_p: 0,
+                data: { test_part: 'horizontal_test', correct_response: 'g'} },
+        { image: "img/horizontal.png", context_image: 'img/right.png', max_p: 0,
+                        data: { test_part: 'horizontal_test', correct_response: 'g'} },
+        { image: "img/horizontal.png", context_image: 'img/left.png', max_p: 0,
+                                data: { test_part: 'horizontal_test', correct_response: 'g'} }
+                              ];
+
+        var feedback = {
+          type: 'html-keyboard-response',
+          stimulus: function(){
+            var last_trial_correct = jsPsych.data.get().last(1).values()[0].correct;
+            if(last_trial_correct){
+              return "<div style=\"width:150px;height:56px;font-size:30px;text-align:center;\">correct!</div>";
+            } else {
+              return "<div style=\"width:150px;height:56px;border:0px;font-size:30px;text-align:center\">wrong.</div>"
+            }
+          },
+          trial_duration: function(){
+            var last_trial_correct = jsPsych.data.get().last(1).values()[0].correct;
+            if(last_trial_correct){
+              return 1000;
+            } else {
+              return 1500
+            }
+          },
+          response_ends_trial: false
+        }
+
+        var horizontal_block = {
+          timeline: [trial, feedback],
+          timeline_variables: horizontal_stimuli,
+          repetitions: 2,
+          randomize_order: true
+        }
+
+       timeline.push(horizontal_block);
+
+          return timeline
+        };
+
+
+      /* start the experiment */
+	timeline=makeTimeline();
+	  jsPsych.init({
+		  timeline: timeline,
+		  on_finish: function() {
+			 jsPsych.data.get().localSave('csv','mydata.csv');
+		  }
+	  });
+
+
+    </script>
+</html>
