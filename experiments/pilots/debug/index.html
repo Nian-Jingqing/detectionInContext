@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Noisy letters</title>
+    <script src="jspsych/jspsych.js"></script>
+    <script src="p5/p5.min.js"></script>
+    <script src="jspsych/plugin-noisy-letter.js"></script>
+    <script src="jspsych/plugin-html-keyboard-response.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Corben&family=Quicksand&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Mono&display=swap" rel="stylesheet">
+    <link href="style.css" rel="stylesheet" type="text/css"></link>
+  </head>
+  <body></body>
+  <script>
+
+    const jsPsych = initJsPsych();
+
+    function makeTimeline() {
+
+      timeline = [];
+
+      var trial = {
+        type: jsNoisyLetter,
+        image: jsPsych.timelineVariable('image'),
+        context_string: jsPsych.timelineVariable('context_string'),
+        p_function: jsPsych.timelineVariable('p_function'),
+        on_finish: function(data){
+          data.correct = data.response == data.correct_response;
+        },
+        data: jsPsych.timelineVariable('data')
+      };
+
+      var letter_present_p_function = (frame_number)=>{return 0.3/(1+Math.exp(-0.2*(frame_number-10)))}
+      var letter_absent_p_function = (frame_number)=>{return 0}
+
+
+      var stimuli = [
+        { image: "img/E.png", context_string: ' P AS', p_function: letter_present_p_function,
+            data: { test_part: 'present', correct_response: 'f', context: 'congruent'} }
+			];
+
+      var feedback = {
+        type: jsPsychHtmlKeyboardResponse,
+        stimulus: function(){
+          var last_trial_correct = jsPsych.data.get().last(1).values()[0].correct;
+          if(last_trial_correct){
+            return "<div style=\"width:150px;height:56px;font-size:30px;text-align:center;\">correct!</div>";
+          } else {
+            return "<div style=\"width:150px;height:56px;border:0px;font-size:30px;text-align:center\">wrong.</div>"
+          }
+        },
+        trial_duration: function(){
+          var last_trial_correct = jsPsych.data.get().last(1).values()[0].correct;
+          if(last_trial_correct){
+            return 1000;
+          } else {
+            return 1500
+          }
+        },
+        response_ends_trial: false
+      }
+
+      var block = {
+        timeline: [trial, feedback],
+        timeline_variables: stimuli,
+        repetitions: 10,
+        randomize_order: true
+      }
+
+     timeline.push(block);
+
+      return timeline
+    }
+
+
+    /* start the experiment */
+    timeline = makeTimeline();
+	jsPsych.run(timeline);
+
+  </script>
+</html>
