@@ -20,8 +20,7 @@
 
     const jsPsych = initJsPsych({
     on_finish: function() {
-        var resultCsv = jsPsych.data.get().csv();
-        jatos.submitResultData(resultCsv, jatos.startNextComponent);
+        jsPsych.data.displayData();
     }});
 
     function makeTimeline() {
