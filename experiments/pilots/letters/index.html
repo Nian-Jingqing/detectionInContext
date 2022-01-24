@@ -5,8 +5,11 @@
     <script src="jspsych/jspsych.js"></script>
     <script src="p5/p5.min.js"></script>
     <script src="jspsych/plugin-fullscreen.js"></script>
+    <script src="jspsych/plugin-preload.js"></script>
+    <script src="jspsych/plugin-instructions.js"></script>
     <script src="jspsych/plugin-noisy-letter.js"></script>
     <script src="jspsych/plugin-html-keyboard-response.js"></script>
+    <script src="jspsych/plugin-image-keyboard-response.js"></script>
     <script src="jspsych/plugin-test.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Corben&family=Quicksand&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Mono&display=swap" rel="stylesheet">
@@ -23,18 +26,45 @@
 
     function makeTimeline() {
 
+      window.stimulus_number = 0;
+
       timeline = [];
+
+      timeline.push({
+        type: jsPsychPreload,
+        auto_preload: true
+      });
 
       timeline.push({
         type: jsPsychFullscreen,
         fullscreen_mode: true
       });
 
-      var trial = {
+      var instructions = {
+          type: jsPsychInstructions,
+          pages: [
+          `<p>On each trial, we will show a square made of smaller gray squares. We call this square 'noise'. Sometimes, the noise will contain a hint of the letter A, and sometimes it won't.</p>
+          <p>Press F if the noise contained the letter A, and G if not.<p>`,
+          `<p>Let's give it a go.</p>`,
+          ],
+          button_label_next: "Continue",
+          button_label_previous: "Back",
+          show_clickable_nav: true
+      };
+      timeline.push(instructions);
+
+      var fixation = {
+        type: jsPsychHtmlKeyboardResponse,
+        stimulus: '<div style="font-size:60px;">+</div>',
+        choices: "NO_KEYS",
+        trial_duration: 500,
+      };
+
+      var practice_letters = {
         type: jsNoisyLetter,
-        choices: ['d','f'],
-        image: jsPsych.timelineVariable('image'),
-        context_string: jsPsych.timelineVariable('context_string'),
+        choices: ['f','g'],
+        image: 'img/A.png',
+        context_string: '',
         p_function: jsPsych.timelineVariable('p_function'),
         on_finish: function(data){
           data.correct = data.response == data.correct_response;
@@ -42,19 +72,14 @@
         data: jsPsych.timelineVariable('data')
       };
 
-      var letter_present_p_function = (frame_number)=>{return 0.3/(1+Math.exp(-0.2*(frame_number-10)))}
+      var letter_present_p_function = (p)=>{return (frame_number)=>{return p/(1+Math.exp(-0.2*(frame_number-10)))}}
       var letter_absent_p_function = (frame_number)=>{return 0}
 
-
-      var stimuli = [
-        { image: "img/E.png", context_string: ' P AS', p_function: letter_present_p_function,
-            data: { test_part: 'present', correct_response: 'f', context: 'congruent'} },
-        { image: "img/E.png", context_string: 'ON ON', p_function: letter_present_p_function,
-              data: { test_part: 'present', correct_response: 'f', context: 'incongruent'},
-        image: "img/E.png", context_string: 'SH EP', p_function: letter_absent_p_function,
-            data: { test_part: 'absent', correct_response: 'g', context: 'congruent'} },
-        { image: "img/E.png", context_string: '  P ONE', p_function: letter_absent_p_function,
-                data: { test_part: 'absent', correct_response: 'g', context: 'incongruent'} }
+      var practice_stimuli = [
+        { p_function: letter_present_p_function(0.6),
+            data: { test_part: 'present', correct_response: 'g'} },
+        { p_function: letter_absent_p_function,
+                data: { test_part: 'absent', correct_response: 'f'}}
       ];
 
       var feedback = {
@@ -78,27 +103,125 @@
         response_ends_trial: false
       }
 
+      var practice_block = {
+        timeline: [fixation, practice_letters, feedback],
+        timeline_variables: practice_stimuli,
+        repetitions: 2,
+        randomize_order: true
+      }
+
+     timeline.push(practice_block);
+
+     var instructions2 = {
+         type: jsPsychInstructions,
+         pages: [
+         `<p>Now we are ready for the actual experiment. This time, your task is exactly the same, but to make things a little more interesting we will present two more things on the screen.
+         First, we will briefly flash an image before the noise. And second, we will flash letters to the sides of the noise.
+         Your task is to ignore the image and the letters, focus on the noise, and determine whether the letter A appeared in itor not.</p>
+         <p>Like before, press F if the letter A appeared in the noise and G if not. This time the A is going to be much harder to detect, so pay close attention!<p>`,
+         `<p>Continue when you are ready to start.</p>`,
+         ],
+         button_label_next: "Continue",
+         button_label_previous: "Back",
+         show_clickable_nav: true
+     };
+     timeline.push(instructions2);
+
+
+      var image = {
+          type: jsPsychImageKeyboardResponse,
+          stimulus: () => {return(context_list[window.stimulus_number].img)},
+          stimulus_height: 150,
+          choices: "NO_KEYS",
+          trial_duration: 500
+      };
+
+      var letters = {
+        type: jsNoisyLetter,
+        choices: ['f','g'],
+        image: jsPsych.timelineVariable('image'),
+        context_string: () => {return(context_list[window.stimulus_number].string)},
+        p_function: jsPsych.timelineVariable('p_function'),
+        on_finish: function(data){
+          data.correct = data.response == data.correct_response;
+          data.context = context_list[window.stimulus_number].context_letter;
+          window.stimulus_number++;
+        },
+        data: jsPsych.timelineVariable('data')
+      };
+
+
+      var context_list = [
+        {string: ' B_LL',
+        img: 'img/ball.jpg',
+        context_letter: 'A'},
+        {string: 'BE_N ',
+        img: 'img/bean.jpg',
+        context_letter: 'A'},
+        {string: 'BU_H ',
+        img: 'img/bush.jpg',
+        context_letter: 'S'},
+        {string: 'FI_H ',
+        img: 'img/fish.jpg',
+        context_letter: 'S'},
+        {string: ' C_KE',
+        img: 'img/cake.jpg',
+        context_letter: 'A'},
+        {string: 'HO_E ',
+        img: 'img/hose.jpg',
+        context_letter: 'S'},
+        {string: 'LE_F ',
+        img: 'img/leaf.jpg',
+        context_letter: 'A'},
+        {string: 'NO_E ',
+        img: 'img/nose.jpg',
+        context_letter: 'S'},
+      ]
+
+      context_list = shuffle(context_list);
+
+      var stimuli = [
+        { image: "img/A.png", p_function: letter_present_p_function(0.25),
+            data: { test_part: 'present', correct_response: 'g'} },
+        {  image: "img/A.png", p_function: letter_absent_p_function,
+                data: { test_part: 'absent', correct_response: 'f'}}
+      ];
+
       var block = {
-        timeline: [trial, feedback],
+        timeline: [fixation, image, letters, feedback],
         timeline_variables: stimuli,
-        repetitions: 10,
+        repetitions: 4,
         randomize_order: true
       }
 
      timeline.push(block);
 
-      timeline.push(block);
-
       return timeline
     }
 
-    const hello_trial = {
-      type: jsPsychTest
+    function shuffle(array) {
+      var currentIndex = array.length, temporaryValue, randomIndex;
+
+      // While there remain elements to shuffle...
+      while (0 !== currentIndex) {
+
+        // Pick a remaining element...
+        randomIndex = Math.floor(Math.random() * currentIndex);
+        currentIndex -= 1;
+
+        // And swap it with the current element.
+        temporaryValue = array[currentIndex];
+        array[currentIndex] = array[randomIndex];
+        array[randomIndex] = temporaryValue;
+      }
+
+      return array;
     }
 
+
     /* start the experiment */
-    timeline = makeTimeline();
-	jsPsych.run(timeline);
+     timeline = makeTimeline();
+     jsPsych.run(timeline);
 
   </script>
 </html>

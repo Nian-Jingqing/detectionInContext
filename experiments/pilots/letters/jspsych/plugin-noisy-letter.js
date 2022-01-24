@@ -31,7 +31,13 @@ var jsNoisyLetter = (function (jspsych) {
 				pretty_name: "Frame rate",
 				default: 15,
 				description: "Frame rate (Hz)"
-			}
+			},
+      choices: {
+        type: jspsych.ParameterType.STRING,
+        pretty_name: "Choices",
+        description: "Choice keys. The first item corresponds to no letter, the second to letter",
+        default: ['f','g']
+      }
 		}
 	}
 
@@ -49,10 +55,12 @@ var jsNoisyLetter = (function (jspsych) {
     }
     trial(display_element, trial) {
 
-      display_element.innerHTML = '<div id="p5_loading" style="font-size:30px">+</div>';
+      display_element.innerHTML = '<div id="p5_loading" style="font-size:60px">+</div>';
 
       //open a p5 sketch
       let sketch = (p) => {
+
+        const du = p.min([window.innerWidth, window.innerHeight, 600])*7/10 //drawing unit
 
         p.preload = () => {
     			this.img = p.loadImage(trial.image);
@@ -120,22 +128,52 @@ var jsNoisyLetter = (function (jspsych) {
           window.presented_pixel_data.push(presented_frame);
           window.frame_number++
 
+          p.push();
+          p.translate(window.innerWidth/2,window.innerHeight/2)
+          if (trial.choices[0]=='f') {
+            p.push()
+            p.translate(-window.innerWidth/4,0)
+            p.fill(255)
+            p.textSize(20)
+            p.text('letter absent',0,0)
+            p.translate(window.innerWidth/2,0)
+            p.text('letter present',0,0)
+            p.pop()
+          } else if (trial.choices[0]=='e') {
+            p.push()
+            p.translate(-window.innerWidth/4,0)
+            p.text('letter present')
+            p.translate(window.innerWidth/2,0)
+            p.text('letter absent')
+            p.pop()
+          }
+
+          p.push()
+          p.fill(200)
+          p.textSize(15)
+          p.translate(-window.innerWidth/4,40)
+          p.text('press F',0,0)
+          p.translate(window.innerWidth/2,0)
+          p.text('press G',0,0)
+          p.pop()
+          p.pop()
+
         }
 
-        p.keyPressed = () => {
+        p.keyReleased = () => {
           // it's only possible to query the key code once for each key press,
           // so saving it as a variable here:
           var key_code = p.keyCode
           // only regard relevant key presses during the response phase
             trial.response = String.fromCharCode(key_code).toLowerCase();
             trial.RT = p.millis();
-            p.remove()
             // data saving
             var trial_data = {
               presented_pixel_data: window.presented_pixel_data,
               RT: trial.RT,
               response: trial.response,
             };
+            p.remove()
             // end trial
             this.jsPsych.finishTrial(trial_data);
         }

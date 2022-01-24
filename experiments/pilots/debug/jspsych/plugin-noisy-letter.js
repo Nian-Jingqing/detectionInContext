@@ -37,7 +37,7 @@ var jsNoisyLetter = (function (jspsych) {
 
         }
 
-        p.keyPressed = () => {
+        p.keyReleased = () => {
          
           var key_code = p.keyCode
 			trial.response = String.fromCharCode(key_code).toLowerCase();
